@@ -1,0 +1,9 @@
+Using SD card
+1) Put an Arduino Due in the sensor hub slot and use the SD card with it. Sensor Hub Tx3 and Rx3 goes to Router Rx3 and Tx3. Router Tx1 and Rx1 goes to connector J2. Router Tx2 and Rx2 goes to DBW Rx1 and Tx1. All computers are connected over CAN.
+2) Control the SD card from the router by placing jumpers on three pins of JP2, connecting MOSI, MISO and SCK to router. Wire Sensor Hub pin 35 to any I/O pin on the router.  This could be
+a. TP12 (to router D20)
+b. J2 pin 3 (closest to board edge; to router D18)
+c. SH pin D37 (to router D37)
+d. SH pin D38 (to router D38)
+e. There are several other SH pins that connect to the router. Any could be used.
+The original purpose of the SD card was to hold maps giving directed graphs connecting intersections, which could be used to plan a route for the vehicle. The map files and route planning code are on https://github.com/elcano/elcano/tree/master/Elcano_C4_Planner 
