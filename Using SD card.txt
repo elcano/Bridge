@@ -5,5 +5,6 @@ a. TP12 (to router D20)
 b. J2 pin 3 (closest to board edge; to router D18)
 c. SH pin D37 (to router D37)
 d. SH pin D38 (to router D38)
+f. Jumper to SH pin D34 (to router D34)
 e. There are several other SH pins that connect to the router. Any could be used.
 The original purpose of the SD card was to hold maps giving directed graphs connecting intersections, which could be used to plan a route for the vehicle. The map files and route planning code are on https://github.com/elcano/elcano/tree/master/Elcano_C4_Planner 
