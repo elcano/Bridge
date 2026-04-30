@@ -1,0 +1,3 @@
+# Per-vehicle local overrides — copy SettingsTemplate.h to Settings.h and
+# tune locally. Settings.h must NOT be committed.
+Settings.h
