@@ -82,7 +82,7 @@ pygame.init()
 screen=pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption("Stage 2 Vehicle Simulator")
 clock=pygame.time.Clock()
-font=pygame.font.SysFont(None, 28)
+font=pygame.font.SysFont(None, 22)
 # -------------
 # Vehicle state
 # -------------
