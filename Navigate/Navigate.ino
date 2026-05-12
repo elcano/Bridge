@@ -16,6 +16,18 @@
  *   0x101 GoalReached: byte0 0x80 set when final waypoint reached
  *   0x200 DBWStatus:   byte0 = DBW mode mirror (received, not yet acted on)
  *   0x400 Actual:      DBW actual speed/angle (received, not yet acted on)
+ *   0x700-0x70A:       Log frames from DBW (received and written to SD card —
+ *                      see "CAN-based logging" below)
+ *
+ * CAN-based logging:
+ *   DBW emits log records over CAN as messages 0x700-0x70A, one set per
+ *   loop tick (see wiki). This sketch listens for those frames, accumulates
+ *   them between 0x70A "finalize" markers, and writes one CSV row per entry
+ *   to an SD card on the Sensor Hub slot (CS pin D35, default no-jumpers
+ *   config per the Bridge SD doc). Byte layouts of 0x701-0x709 are not yet
+ *   specified by the wiki; the SD CSV captures raw hex bytes per CAN ID,
+ *   losslessly. A future decoder (firmware update or Python post-processor)
+ *   can split the hex into named subfields once the byte spec lands.
  *
  * Sim serial CSV format (line-based, easy to drive from a PC terminal):
  *   G,<lat_deg>,<lon_deg>     e.g. G,47.7600,-122.1917
@@ -34,10 +46,18 @@
  */
 
 #include <due_can.h>
+#include <SPI.h>
+#include <SD.h>
 #include "Settings.h"
 #include "NavMath.h"
 #include "Waypoints.h"
 #include "SimProtocol.h"
+
+// SD card CS pin per Bridge SD doc, default Sensor-Hub-side config (no JP2
+// jumpers). If JP2 jumpers route SPI to Router instead, SD on Sensor Hub is
+// unavailable and SD.begin() will fail; the sketch then falls back to
+// Serial-only logging output.
+#define SD_CS_PIN 35
 
 // Hardcoded pose-sequence self-test. Enabled by default — when on, the
 // sketch ignores USB serial pose input and walks an internal timeline
@@ -63,6 +83,27 @@ static bool selfTestPendingOutput = false;
 #define NavDrive_CANID     0x350
 #define Actual_CANID       0x400
 
+// Log message IDs (DBW emits these for CAN-based logging — see header comment)
+#define LogHeader_CANID    0x700  // start-of-log marker
+#define LogTime_CANID      0x701
+#define LogRC_CANID        0x702
+#define LogOp_CANID        0x703
+#define LogAuto_CANID      0x704
+#define LogDesired_CANID   0x705
+#define LogThrottle_CANID  0x706
+#define LogBrakes_CANID    0x707
+#define LogSteer_CANID     0x708
+#define LogPosition_CANID  0x709
+#define LogFinalize_CANID  0x70A  // end-of-entry marker
+#define LogID_FIRST        0x700
+#define LogID_LAST         0x70A
+#define LogID_COUNT        (LogID_LAST - LogID_FIRST + 1)  // 11
+
+// Stale-buffer timeout: if we haven't seen a Log frame in this many ms,
+// flush whatever's accumulated as a partial row. Protects against losing
+// data if DBW dies mid-entry.
+#define LOG_TIMEOUT_MS 1000
+
 // ---- Origin and waypoints in cm-frame (filled at startup) ----
 // Origin is set from waypoints[0] at startup; all internal pose math is
 // done in (east_cm, north_cm) integer offsets from this origin.
@@ -84,6 +125,21 @@ static bool missionComplete = false;
 static const size_t LINE_BUF_SZ = 64;
 static char lineBuf[LINE_BUF_SZ];
 static size_t lineLen = 0;
+
+// ---- CAN-based log capture (writes to SD card) ----
+// Accumulates frames 0x701-0x709 between 0x70A "finalize" markers, writes
+// one CSV row per entry. Each cell is the raw hex bytes of that CAN ID's
+// frame, lossless. Empty cell = that ID didn't arrive in this entry.
+struct LogEntryBuffer {
+  bool received[LogID_COUNT];        // [0]=0x700, [1]=0x701, ..., [10]=0x70A
+  uint8_t length[LogID_COUNT];       // bytes received per slot (0 if absent)
+  uint8_t data[LogID_COUNT][8];      // raw bytes per slot
+  uint32_t lastFrame_ms;             // millis() of most recent log frame
+  bool hasContent;                   // any 0x701-0x709 received since last reset
+};
+static LogEntryBuffer logBuf;
+static File logFile;
+static bool sdAvailable = false;
 
 // ---- CAN frames ----
 static CAN_FRAME outgoing;
@@ -322,11 +378,146 @@ static void computeAndSendDrive() {
 }
 
 /* -------------------------------------------------------------------------- */
+/* CAN-based log capture (writes to SD card)                                  */
+/* -------------------------------------------------------------------------- */
+
+// Reset the in-memory log buffer for the next entry.
+static void resetLogBuffer() {
+  for (int i = 0; i < LogID_COUNT; i++) {
+    logBuf.received[i] = false;
+    logBuf.length[i] = 0;
+  }
+  logBuf.hasContent = false;
+  logBuf.lastFrame_ms = 0;
+}
+
+// Open SD card and start a new log file (LOG00.CSV, LOG01.CSV, ...).
+// Falls back to no-op (sdAvailable = false) if SD isn't present; sketch
+// continues to run normally without writing logs.
+static void initSdLog() {
+  resetLogBuffer();
+  SerialUSB.print("Initializing SD card on D");
+  SerialUSB.print(SD_CS_PIN);
+  SerialUSB.print("... ");
+  pinMode(SD_CS_PIN, OUTPUT);
+  digitalWrite(SD_CS_PIN, HIGH);
+  delay(100);
+  if (!SD.begin(SD_CS_PIN)) {
+    SerialUSB.println("not found. CAN log -> SD disabled.");
+    SerialUSB.println("(If SD is on Router via JP2 jumpers, that's expected.)");
+    return;
+  }
+  SerialUSB.println("OK.");
+  // Pick the first unused LOG##.CSV
+  char filename[13];
+  for (int i = 0; i < 100; i++) {
+    sprintf(filename, "LOG%02d.CSV", i);
+    if (!SD.exists(filename)) break;
+  }
+  logFile = SD.open(filename, FILE_WRITE);
+  if (!logFile) {
+    SerialUSB.print("Could not open ");
+    SerialUSB.println(filename);
+    return;
+  }
+  SerialUSB.print("CAN log -> SD: ");
+  SerialUSB.println(filename);
+  // CSV header. Each cell holds raw hex bytes of that CAN ID's frame
+  // (lossless capture; byte layouts of 0x701-0x709 not yet specified by
+  // the wiki — decoder is a future enhancement).
+  logFile.println("rx_ms,time_701,rc_702,op_703,nav_cmd_704,active_cmd_705,throttle_706,brakes_707,steer_708,position_709,util_70A");
+  logFile.flush();
+  sdAvailable = true;
+}
+
+// Write the accumulated log buffer as one CSV row, then reset.
+// Called when 0x70A is received OR when the stale-buffer timeout fires.
+static uint32_t logRowsWritten = 0;
+static void writeLogRow() {
+  if (!logBuf.hasContent) {
+    resetLogBuffer();
+    return;
+  }
+  if (!sdAvailable) {
+    resetLogBuffer();
+    return;
+  }
+  logFile.print(millis()); logFile.print(",");
+  // Write slots 1..10 (0x701..0x70A) — slot 0 (0x700) is the session header,
+  // not a per-row field.
+  for (int slot = 1; slot < LogID_COUNT; slot++) {
+    if (logBuf.received[slot]) {
+      for (int b = 0; b < logBuf.length[slot]; b++) {
+        if (logBuf.data[slot][b] < 0x10) logFile.print("0");
+        logFile.print(logBuf.data[slot][b], HEX);
+      }
+    }
+    if (slot < LogID_COUNT - 1) logFile.print(",");
+  }
+  logFile.println();
+  logFile.flush();
+  logRowsWritten++;
+  SerialUSB.print("Log row written (total: ");
+  SerialUSB.print(logRowsWritten);
+  SerialUSB.println(")");
+  resetLogBuffer();
+}
+
+// Handle one received CAN frame whose ID is in 0x700-0x70A.
+static void onLogFrame(const CAN_FRAME& f) {
+  int slot = (int)f.id - LogID_FIRST;
+  if (slot < 0 || slot >= LogID_COUNT) return;
+
+  if (f.id == LogHeader_CANID) {
+    // 0x700 marks a new logging session from DBW. Flush any partial
+    // buffer (in case DBW restarted mid-entry) and reset for a fresh
+    // sequence of 0x701-0x70A frames.
+    if (logBuf.hasContent) writeLogRow();
+    SerialUSB.println("RX 0x700 LogHeader (new session)");
+    resetLogBuffer();
+    return;
+  }
+
+  // 0x701..0x70A: stash the frame in its slot.
+  uint8_t len = f.length;
+  if (len > 8) len = 8;
+  logBuf.received[slot] = true;
+  logBuf.length[slot] = len;
+  for (int b = 0; b < len; b++) logBuf.data[slot][b] = f.data.uint8[b];
+  logBuf.lastFrame_ms = millis();
+  if (f.id != LogFinalize_CANID) logBuf.hasContent = true;
+
+  if (f.id == LogFinalize_CANID) {
+    writeLogRow();
+  }
+}
+
+// If a partial buffer has been sitting unfinished for too long (DBW lost
+// the bus, mis-sequenced its frames, etc.), flush it as a partial row.
+static void checkLogTimeout() {
+  if (!logBuf.hasContent) return;
+  if (millis() - logBuf.lastFrame_ms < LOG_TIMEOUT_MS) return;
+  SerialUSB.println("Log buffer timeout - flushing partial entry");
+  writeLogRow();
+}
+
+/* -------------------------------------------------------------------------- */
 /* Arduino entry points                                                       */
 /* -------------------------------------------------------------------------- */
 void setup() {
   SerialUSB.begin(115200);
   // Don't block on SerialUSB - the vehicle may run without a PC attached.
+
+  // Visible startup countdown so the Serial Monitor has time to attach
+  // after upload/reset. The Native USB port re-enumerates after upload,
+  // which can hide the first few prints otherwise.
+  for (int i = 5; i > 0; i--) {
+    SerialUSB.print("Starting in ");
+    SerialUSB.print(i);
+    SerialUSB.println("...");
+    delay(1000);
+  }
+
   if (Can0.begin(CAN_BPS_500K)) {
     SerialUSB.println("CAN init success");
   } else {
@@ -335,6 +526,12 @@ void setup() {
   // Listen for DBW status and actuals so we can react to them later.
   Can0.watchFor(DBWStatus_CANID);
   Can0.watchFor(Actual_CANID);
+
+  // Listen for log frames from DBW (0x700-0x70A) for CAN-based SD logging.
+  // Use watchForRange so the entire log ID range fits in one CAN mailbox —
+  // the SAM3X has only 8 mailboxes per port, and per-ID watchFor would burn
+  // 11 of them (silently failing past mailbox 8).
+  Can0.watchForRange(LogID_FIRST, LogID_LAST);
 
   // Initialize the local Euclidean frame using waypoint 0 as the origin,
   // then convert all waypoints to cm-frame for fast integer math at
@@ -350,6 +547,9 @@ void setup() {
   SerialUSB.print("Origin: lat=");  SerialUSB.print(nav_origin.lat, 6);
   SerialUSB.print(" lon=");          SerialUSB.println(nav_origin.lon, 6);
 
+  // Start the SD logger (no-op if SD card isn't present).
+  initSdLog();
+
 #ifdef SELF_TEST
   SerialUSB.println();
   SerialUSB.println("=== SELF_TEST mode ===");
@@ -360,16 +560,6 @@ void setup() {
   SerialUSB.println("  IN  = simulated pose injected (east_cm/north_cm/heading/speed)");
   SerialUSB.println("  OUT = nav decision (target waypoint, dist_cm/bearing, drive command)");
   SerialUSB.println();
-  // Visible countdown so step 1 isn't lost in the Native USB re-enumerate
-  // window after upload/reset. Even if the Serial Monitor opens partway
-  // through, the user catches enough of the countdown to know what's
-  // happening before step 1 fires.
-  for (int i = 5; i > 0; i--) {
-    SerialUSB.print("Starting sequence in ");
-    SerialUSB.print(i);
-    SerialUSB.println("...");
-    delay(1000);
-  }
 #endif
 }
 
@@ -389,8 +579,14 @@ void loop() {
   CAN_FRAME incoming;
   while (Can0.available() > 0) {
     Can0.read(incoming);
-    // Placeholder - future: react to DBW DBWStatus / Actual.
+    if (incoming.id >= LogID_FIRST && incoming.id <= LogID_LAST) {
+      onLogFrame(incoming);
+    }
+    // Future: also react to DBWStatus (0x200) / Actual (0x400).
   }
+
+  // Flush a partial log entry if it's been sitting too long.
+  checkLogTimeout();
 
   uint32_t elapsed = millis() - start_ms;
   if (elapsed < loopPeriod_ms) delay(loopPeriod_ms - elapsed);
