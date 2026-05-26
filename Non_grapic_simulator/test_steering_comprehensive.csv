@@ -1,0 +1,21 @@
+# Comprehensive Steering Test
+# Format: time_ms, CANID, nbytes, speed_cmPs, brake, mode, angle_tenths
+# Description: Test left turn, right turn, and return to straight
+
+# Start: Turn left gradually
+0,350,6,1500,0,1,-105
+500,350,6,1500,0,1,-210
+1000,350,6,1500,0,1,-210
+
+# Return to straight
+2000,350,6,1500,0,1,0
+2500,350,6,1500,0,1,0
+
+# Turn right gradually
+3500,350,6,1500,0,1,105
+4000,350,6,1500,0,1,210
+4500,350,6,1500,0,1,210
+
+# Return to straight
+5500,350,6,1500,0,1,0
+6000,350,6,1500,0,1,0

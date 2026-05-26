@@ -1,0 +1,14 @@
+# Brake Test
+# Test braking at different speeds
+
+# Moving at speed
+0,350,6,1500,0,1,0
+1000,350,6,1500,0,1,0
+
+# Apply brake
+2000,350,6,0,2,1,0
+3000,350,6,0,2,1,0
+
+# Coast
+4000,350,6,0,0,1,0
+5000,350,6,0,0,1,0
