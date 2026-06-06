@@ -4,9 +4,6 @@
  * Router Arduino (or PC simulator) emits framed messages over Native USB.
  * Each frame starts with a header byte identifying the payload type;
  * payload format is per-message-type and documented below.
- *
- * This mirrors Minhee's updated Router-Arduino simulator so the HL Due
- * stays source-compatible once the full sim lands.
  */
 
 #define SIM_HDR_COMPASS 0x05  // heading in deci-degrees (int16, 0..3599)
