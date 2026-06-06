@@ -1,0 +1,18 @@
+# Combined Speed and Steering Test
+# Test different speeds with steering
+
+# Low speed + left turn
+0,350,6,500,0,1,-210
+1000,350,6,500,0,1,-210
+
+# Medium speed + straight
+2000,350,6,1500,0,1,0
+3000,350,6,1500,0,1,0
+
+# High speed + right turn
+4000,350,6,3000,0,1,210
+5000,350,6,3000,0,1,210
+
+# Return to slow + straight
+6000,350,6,500,0,1,0
+7000,350,6,500,0,1,0
