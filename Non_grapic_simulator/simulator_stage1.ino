@@ -26,69 +26,75 @@
 #include <SD.h>
 
 // ===== Pin Definitions =====
-#define THROTTLE_PIN    A0   // From DBW DAC0
-#define BRAKE_VOLT_PIN  42   // From DBW D40
-#define BRAKE_ON_PIN    48   // From DBW D44
-#define L_TURN_PIN      4    // From DBW D26
-#define R_TURN_PIN      2    // From DBW D28
-#define IRPT_WHEEL_PIN  47   // To DBW D47
-#define L_SENSE_PIN     DAC0 // To DBW A10
-#define R_SENSE_PIN     DAC1 // To DBW A11
+#define THROTTLE_PIN A0   // From DBW DAC0
+#define BRAKE_VOLT_PIN 42 // From DBW D40
+#define BRAKE_ON_PIN 48   // From DBW D44
+#define L_TURN_PIN 4      // From DBW D26
+#define R_TURN_PIN 2      // From DBW D28
+#define IRPT_WHEEL_PIN 47 // To DBW D47
+#define L_SENSE_PIN DAC0  // To DBW A10
+#define R_SENSE_PIN DAC1  // To DBW A11
 
 // ===== SD Card Pin =====
 // Connect Sensor Hub Pin 35 to 37 (router pin D20)
-#define SD_CS_PIN       37
+#define SD_CS_PIN 37
 
 // ===== Speed Model Constants =====
 // FRICTION = 0.9296 represented as 9296/10000
-#define FRICTION_NUM            9296
-#define FRICTION_DEN            10000
-#define MIN_EFFECTIVE_THROTTLE  65
-#define MAX_EFFECTIVE_THROTTLE  227
-#define MAX_SPEED_mmPs          13600  // 13.6 m/s in mm/s
-#define THROTTLE_HISTORY        10     // Number of throttle samples to keep
-#define THROTTLE_DELAY_START    3      // Start index for mean (from t-10)
-#define THROTTLE_DELAY_END      10     // End index for mean (to t-3, 8 samples)
+#define FRICTION_NUM 9296
+#define FRICTION_DEN 10000
+#define MIN_EFFECTIVE_THROTTLE 65
+#define MAX_EFFECTIVE_THROTTLE 227
+#define MAX_SPEED_mmPs 13600   // 13.6 m/s in mm/s
+#define THROTTLE_HISTORY 10    // Number of throttle samples to keep
+#define THROTTLE_DELAY_START 3 // Start index for mean (from t-10)
+#define THROTTLE_DELAY_END 10  // End index for mean (to t-3, 8 samples)
 
 // ===== Vehicle Settings =====
-#define WHEEL_DIAMETER_MM   495        // mm (rounded from 495.3)
-#define WHEEL_CIRCUM_MM     1555       // mm (495 * pi, rounded)
-#define LOOP_TIME_MS        100        // Loop period in ms
-#define MAX_ANGLE_TENTHS    250        // 25.0 degrees in tenths
-#define ANGLE_CHANGE_TENTHS 20         // 2.0 degrees per loop in tenths
+#define WHEEL_DIAMETER_MM 495  // mm (rounded from 495.3)
+#define WHEEL_CIRCUM_MM 1555   // mm (495 * pi, rounded)
+#define LOOP_TIME_MS 100       // Loop period in ms
+#define MAX_ANGLE_TENTHS 250   // 25.0 degrees in tenths
+#define ANGLE_CHANGE_TENTHS 20 // 2.0 degrees per loop in tenths
 
 // ===== Wheel Angle Sensor =====
 // L_SENSE: Straight=722, Min(hard right)=779, Max(hard left)=639
-#define L_STRAIGHT  722
-#define L_MIN       779
-#define L_MAX       639
+#define L_STRAIGHT 722
+#define L_MIN 779
+#define L_MAX 639
 // R_SENSE: Straight=731, Min(hard right)=673, Max(hard left)=786
-#define R_STRAIGHT  731
-#define R_MIN       673
-#define R_MAX       786
+#define R_STRAIGHT 731
+#define R_MIN 673
+#define R_MAX 786
 
 // ===== Global Variables (all integer) =====
-int throttleHistory[THROTTLE_HISTORY];  // Ring buffer of recent throttle values
+int throttleHistory[THROTTLE_HISTORY]; // Ring buffer of recent throttle values
 int historyIndex = 0;
 
-int speed_mmPs     = 0;  // Current speed in mm/s
-int prevSpeed_mmPs = 0;  // Previous speed in mm/s
+int speed_mmPs = 0;     // Current speed in mm/s
+int prevSpeed_mmPs = 0; // Previous speed in mm/s
 
-int heading_tenths = 0;  // Vehicle heading in tenths of degree (0=North, 900=East)
-int angle_tenths   = 0;  // Steering angle in tenths of degree (negative=left, positive=right)
+int heading_tenths = 0; // Vehicle heading in tenths of degree (0=North, 900=East)
+int angle_tenths = 0;   // Steering angle in tenths of degree (negative=left, positive=right)
 
-long X_mm = 0;           // East-West position in mm
-long Y_mm = 0;           // North-South position in mm
+long X_mm = 0; // East-West position in mm
+long Y_mm = 0; // North-South position in mm
 
-unsigned long nextPulseTime_ms = 0;  // Timestamp of next wheel pulse
+unsigned long nextPulseTime_ms = 0; // Timestamp of next wheel pulse
 
 // ===== SD Card Variables =====
 File logFile;
 bool sdAvailable = false;
 
+// ===== Test Script Execution =====
+bool runningTestScript = false;
+char currentTestFile[20] = "";
+int scriptLineIndex = 0;
+unsigned long scriptStartTime = 0;
+
 // ===== Function Declarations =====
-int  computeSpeed(int throttle, bool brakeOn);
-int  updateAngle(bool lTurn, bool rTurn);
+int computeSpeed(int throttle, bool brakeOn);
+int updateAngle(bool lTurn, bool rTurn);
 void updatePosition(int speed, int &heading, int angle);
 void sendWheelPulse(int speed);
 void sendAngleSensor(int angle_tenths);
@@ -96,35 +102,142 @@ void sendAngleSensor(int angle_tenths);
 // ===== Integer sine/cosine (returns value * 1000) =====
 // Uses lookup table for 0-90 degrees, maps other quadrants
 // angle_tenths: angle in tenths of degree (0-3600)
-int sin1000(int angle_tenths) {
+int sin1000(int angle_tenths)
+{
   // Normalize to 0-3599
   angle_tenths = ((angle_tenths % 3600) + 3600) % 3600;
   // sin lookup table for 0-90 deg in 1-deg steps (* 1000)
   static const int sinTable[91] = {
-    0, 17, 35, 52, 70, 87, 105, 122, 139, 156,
-    174, 191, 208, 225, 242, 259, 276, 292, 309, 326,
-    342, 358, 375, 391, 407, 423, 438, 454, 469, 485,
-    500, 515, 530, 545, 559, 574, 588, 602, 616, 629,
-    643, 656, 669, 682, 695, 707, 719, 731, 743, 755,
-    766, 777, 788, 799, 809, 819, 829, 839, 848, 857,
-    866, 875, 883, 891, 899, 906, 914, 921, 927, 934,
-    940, 946, 951, 956, 961, 966, 970, 974, 978, 982,
-    985, 988, 990, 993, 995, 996, 998, 999, 999, 1000,
-    1000
-  };
+      0, 17, 35, 52, 70, 87, 105, 122, 139, 156,
+      174, 191, 208, 225, 242, 259, 276, 292, 309, 326,
+      342, 358, 375, 391, 407, 423, 438, 454, 469, 485,
+      500, 515, 530, 545, 559, 574, 588, 602, 616, 629,
+      643, 656, 669, 682, 695, 707, 719, 731, 743, 755,
+      766, 777, 788, 799, 809, 819, 829, 839, 848, 857,
+      866, 875, 883, 891, 899, 906, 914, 921, 927, 934,
+      940, 946, 951, 956, 961, 966, 970, 974, 978, 982,
+      985, 988, 990, 993, 995, 996, 998, 999, 999, 1000,
+      1000};
   int deg = angle_tenths / 10;
-  if (angle_tenths < 900)       return sinTable[deg];
-  else if (angle_tenths < 1800) return sinTable[180 - deg];
-  else if (angle_tenths < 2700) return -sinTable[deg - 180];
-  else                          return -sinTable[360 - deg];
+  if (angle_tenths < 900)
+    return sinTable[deg];
+  else if (angle_tenths < 1800)
+    return sinTable[180 - deg];
+  else if (angle_tenths < 2700)
+    return -sinTable[deg - 180];
+  else
+    return -sinTable[360 - deg];
 }
 
-int cos1000(int angle_tenths) {
+int cos1000(int angle_tenths)
+{
   return sin1000(angle_tenths + 900);
 }
 
+// ===== Read and Execute Test Script from SD Card =====
+void executeTestScript(char *filename)
+{
+  if (!sdAvailable)
+  {
+    Serial.println("ERROR: SD card not available. Cannot run test script.");
+    return;
+  }
+
+  if (!SD.exists(filename))
+  {
+    Serial.print("ERROR: Test script not found: ");
+    Serial.println(filename);
+    return;
+  }
+
+  Serial.print("Running test script: ");
+  Serial.println(filename);
+
+  File scriptFile = SD.open(filename);
+  if (!scriptFile)
+  {
+    Serial.println("ERROR: Could not open test script file");
+    return;
+  }
+
+  scriptStartTime = millis();
+  char line[128];
+  int lineIdx = 0;
+
+  while (scriptFile.available())
+  {
+    char c = (char)scriptFile.read();
+
+    if (c == '\n' || c == '\r')
+    {
+      line[lineIdx] = '\0';
+      lineIdx = 0;
+
+      // Skip comments and empty lines
+      if (line[0] != '\0' && line[0] != '#')
+      {
+        // Parse and execute command
+        parseAndExecuteTestCommand(line);
+      }
+    }
+    else
+    {
+      if (lineIdx < 127)
+      {
+        line[lineIdx++] = c;
+      }
+    }
+  }
+
+  scriptFile.close();
+  Serial.print("Test script completed: ");
+  Serial.println(filename);
+}
+
+// ===== Parse Test Command Line =====
+void parseAndExecuteTestCommand(char *line)
+{
+  // Format: time_ms,CANID,nbytes,speed,brake,mode,angle
+  // Example: 0,350,6,1500,0,1,-210
+
+  int fields[8];
+  int nFields = 0;
+  char *ptr = line;
+
+  while (*ptr && nFields < 8)
+  {
+    fields[nFields++] = (int)strtol(ptr, &ptr, 0);
+    if (*ptr == ',')
+      ptr++;
+  }
+
+  if (nFields < 7)
+    return;
+
+  unsigned long executeTime = fields[0];
+
+  // Wait until it's time to execute
+  unsigned long elapsed = millis() - scriptStartTime;
+  while (elapsed < executeTime)
+  {
+    delay(10);
+    elapsed = millis() - scriptStartTime;
+  }
+
+  // Log the command execution
+  Serial.print("CMD: speed=");
+  Serial.print(fields[3]);
+  Serial.print(" brake=");
+  Serial.print(fields[4]);
+  Serial.print(" mode=");
+  Serial.print(fields[5]);
+  Serial.print(" angle=");
+  Serial.println(fields[6]);
+}
+
 // ===== Setup =====
-void setup() {
+void setup()
+{
   Serial.begin(115200);
 
   // Configure pins
@@ -137,7 +250,8 @@ void setup() {
   digitalWrite(IRPT_WHEEL_PIN, LOW);
 
   // Initialize throttle history buffer
-  for (int i = 0; i < THROTTLE_HISTORY; i++) {
+  for (int i = 0; i < THROTTLE_HISTORY; i++)
+  {
     throttleHistory[i] = 0;
   }
 
@@ -148,62 +262,91 @@ void setup() {
   pinMode(SD_CS_PIN, OUTPUT);
   digitalWrite(SD_CS_PIN, HIGH);
   delay(100);
-  if (SD.begin(SD_CS_PIN)) {
+  if (SD.begin(SD_CS_PIN))
+  {
     Serial.println("SD card found!");
     char filename[13];
-    for (int i = 0; i < 100; i++) {
+    for (int i = 0; i < 100; i++)
+    {
       sprintf(filename, "SIM%02d.CSV", i);
-      if (!SD.exists(filename)) break;
+      if (!SD.exists(filename))
+        break;
     }
     Serial.print("Opening file: ");
     Serial.println(filename);
     logFile = SD.open(filename, FILE_WRITE);
-    if (logFile) {
+    if (logFile)
+    {
       sdAvailable = true;
       Serial.print("Logging to SD: ");
       Serial.println(filename);
-    } else {
+    }
+    else
+    {
       Serial.println("Failed to open file. Using Serial.");
     }
-  } else {
+  }
+  else
+  {
     Serial.println("SD not found. Using Serial.");
     Serial.println("Check: JP2 jumpers x3, wire SH Pin35 to TP12(D20)");
   }
 
   // Print CSV header
   // Units: time=ms, X/Y=mm, heading/angle=tenths of degree, speed=mm/s
-  if (sdAvailable) {
+  if (sdAvailable)
+  {
     logFile.println("time_ms,X_mm,Y_mm,heading_tenths,speed_mmPs,angle_tenths,throttle,brakeOn");
     logFile.flush();
-  } else {
+  }
+  else
+  {
     Serial.println("time_ms,X_mm,Y_mm,heading_tenths,speed_mmPs,angle_tenths,throttle,brakeOn");
   }
+
+  // Execute test scripts if available
+  if (sdAvailable)
+  {
+    Serial.println("Starting test scripts...");
+    executeTestScript("test_steering_comprehensive.csv");
+    delay(2000);
+    executeTestScript("test_speed_and_steering.csv");
+    delay(2000);
+    executeTestScript("test_brake.csv");
+  }
+
   Serial.println("Simulator Stage 1 started.");
 }
 
 // ===== Main Loop =====
-void loop() {
+void loop()
+{
   // Stop after 50 seconds
-  if (millis() > 50000) {
-    if (sdAvailable) {
+  if (millis() > 50000)
+  {
+    if (sdAvailable)
+    {
       logFile.println("Done.");
       logFile.flush();
       logFile.close();
       Serial.println("Done. SD card closed.");
-    } else {
+    }
+    else
+    {
       Serial.println("Done.");
     }
-    while (1);
+    while (1)
+      ;
   }
 
   uint32_t startTime = millis();
 
   // Fixed test values (uncomment below to read from DBW pins)
-  int throttle   = 150;
-  bool brakeOn   = false;
+  int throttle = 150;
+  bool brakeOn = false;
   bool brakeVolt = false;
-  bool lTurn     = false;
-  bool rTurn     = false;
+  bool lTurn = false;
+  bool rTurn = false;
 
   // Uncomment to read real inputs from DBW:
   // int rawThrottle = analogRead(THROTTLE_PIN);
@@ -231,24 +374,41 @@ void loop() {
   sendAngleSensor(angle_tenths);
 
   // 7. Log CSV line (all integers)
-  if (sdAvailable) {
-    logFile.print(millis());       logFile.print(",");
-    logFile.print(X_mm);           logFile.print(",");
-    logFile.print(Y_mm);           logFile.print(",");
-    logFile.print(heading_tenths); logFile.print(",");
-    logFile.print(speed_mmPs);     logFile.print(",");
-    logFile.print(angle_tenths);   logFile.print(",");
-    logFile.print(throttle);       logFile.print(",");
+  if (sdAvailable)
+  {
+    logFile.print(millis());
+    logFile.print(",");
+    logFile.print(X_mm);
+    logFile.print(",");
+    logFile.print(Y_mm);
+    logFile.print(",");
+    logFile.print(heading_tenths);
+    logFile.print(",");
+    logFile.print(speed_mmPs);
+    logFile.print(",");
+    logFile.print(angle_tenths);
+    logFile.print(",");
+    logFile.print(throttle);
+    logFile.print(",");
     logFile.println(brakeOn ? 1 : 0);
     logFile.flush();
-  } else {
-    Serial.print(millis());       Serial.print(",");
-    Serial.print(X_mm);           Serial.print(",");
-    Serial.print(Y_mm);           Serial.print(",");
-    Serial.print(heading_tenths); Serial.print(",");
-    Serial.print(speed_mmPs);     Serial.print(",");
-    Serial.print(angle_tenths);   Serial.print(",");
-    Serial.print(throttle);       Serial.print(",");
+  }
+  else
+  {
+    Serial.print(millis());
+    Serial.print(",");
+    Serial.print(X_mm);
+    Serial.print(",");
+    Serial.print(Y_mm);
+    Serial.print(",");
+    Serial.print(heading_tenths);
+    Serial.print(",");
+    Serial.print(speed_mmPs);
+    Serial.print(",");
+    Serial.print(angle_tenths);
+    Serial.print(",");
+    Serial.print(throttle);
+    Serial.print(",");
     Serial.println(brakeOn ? 1 : 0);
   }
 
@@ -259,12 +419,18 @@ void loop() {
 }
 
 // ===== Compute Speed (integer arithmetic) =====
-int computeSpeed(int throttle, bool brakeOn) {
-  if (brakeOn) { prevSpeed_mmPs = 0; return 0; }
+int computeSpeed(int throttle, bool brakeOn)
+{
+  if (brakeOn)
+  {
+    prevSpeed_mmPs = 0;
+    return 0;
+  }
 
   // Compute mean throttle over samples t-10 to t-3 (8 samples)
   long sum = 0;
-  for (int i = THROTTLE_DELAY_START; i <= THROTTLE_DELAY_END; i++) {
+  for (int i = THROTTLE_DELAY_START; i <= THROTTLE_DELAY_END; i++)
+  {
     int idx = (historyIndex - i + THROTTLE_HISTORY) % THROTTLE_HISTORY;
     sum += throttleHistory[idx];
   }
@@ -272,42 +438,54 @@ int computeSpeed(int throttle, bool brakeOn) {
 
   // Estimated speed from throttle model (mm/s)
   int estimatedSpeed = 0;
-  if (meanThrottle > MIN_EFFECTIVE_THROTTLE) {
+  if (meanThrottle > MIN_EFFECTIVE_THROTTLE)
+  {
     estimatedSpeed = (int)((long)MAX_SPEED_mmPs *
-                    (meanThrottle - MIN_EFFECTIVE_THROTTLE) /
-                    (MAX_EFFECTIVE_THROTTLE - MIN_EFFECTIVE_THROTTLE));
+                           (meanThrottle - MIN_EFFECTIVE_THROTTLE) /
+                           (MAX_EFFECTIVE_THROTTLE - MIN_EFFECTIVE_THROTTLE));
   }
-  if (estimatedSpeed < 0) estimatedSpeed = 0;
+  if (estimatedSpeed < 0)
+    estimatedSpeed = 0;
 
   // Momentum: prevSpeed * 0.9296 = prevSpeed * 9296 / 10000
   int momentum = (int)((long)prevSpeed_mmPs * FRICTION_NUM / FRICTION_DEN);
 
   // Final speed
   int newSpeed = (momentum > estimatedSpeed) ? momentum : estimatedSpeed;
-  if (newSpeed > MAX_SPEED_mmPs) newSpeed = MAX_SPEED_mmPs;
+  if (newSpeed > MAX_SPEED_mmPs)
+    newSpeed = MAX_SPEED_mmPs;
   prevSpeed_mmPs = newSpeed;
   return newSpeed;
 }
 
 // ===== Update Steering Angle (integer, tenths of degree) =====
-int updateAngle(bool lTurn, bool rTurn) {
-  if (lTurn && !rTurn)      angle_tenths -= ANGLE_CHANGE_TENTHS;
-  else if (!lTurn && rTurn) angle_tenths += ANGLE_CHANGE_TENTHS;
+int updateAngle(bool lTurn, bool rTurn)
+{
+  if (lTurn && !rTurn)
+    angle_tenths -= ANGLE_CHANGE_TENTHS;
+  else if (!lTurn && rTurn)
+    angle_tenths += ANGLE_CHANGE_TENTHS;
 
-  if (angle_tenths > MAX_ANGLE_TENTHS)  angle_tenths = MAX_ANGLE_TENTHS;
-  if (angle_tenths < -MAX_ANGLE_TENTHS) angle_tenths = -MAX_ANGLE_TENTHS;
+  if (angle_tenths > MAX_ANGLE_TENTHS)
+    angle_tenths = MAX_ANGLE_TENTHS;
+  if (angle_tenths < -MAX_ANGLE_TENTHS)
+    angle_tenths = -MAX_ANGLE_TENTHS;
   return angle_tenths;
 }
 
 // ===== Update Vehicle Position (integer arithmetic) =====
-void updatePosition(int speed, int &heading, int angle) {
+void updatePosition(int speed, int &heading, int angle)
+{
   // heading change per loop: angle_tenths * 0.01 degrees
   // = angle_tenths / 100 tenths = angle_tenths / 1000 * 10 tenths
-  if (speed > 0) {
-    heading += angle_tenths / 100;  // rough heading change in tenths of degree
+  if (speed > 0)
+  {
+    heading += angle_tenths / 100; // rough heading change in tenths of degree
   }
-  if (heading >= 3600) heading -= 3600;
-  if (heading < 0)     heading += 3600;
+  if (heading >= 3600)
+    heading -= 3600;
+  if (heading < 0)
+    heading += 3600;
 
   // Distance in mm per loop: speed_mmPs * 100ms / 1000
   int distance_mm = speed * LOOP_TIME_MS / 1000;
@@ -320,14 +498,17 @@ void updatePosition(int speed, int &heading, int angle) {
 }
 
 // ===== Send Wheel Pulse =====
-void sendWheelPulse(int speed_mmPs) {
-  if (speed_mmPs <= 0) return;
+void sendWheelPulse(int speed_mmPs)
+{
+  if (speed_mmPs <= 0)
+    return;
 
   // Time for one full wheel revolution at current speed (ms)
   unsigned long pulseInterval_ms = (unsigned long)WHEEL_CIRCUM_MM * 1000 / speed_mmPs;
 
   unsigned long now = millis();
-  if (now >= nextPulseTime_ms) {
+  if (now >= nextPulseTime_ms)
+  {
     digitalWrite(IRPT_WHEEL_PIN, HIGH);
     delayMicroseconds(100);
     digitalWrite(IRPT_WHEEL_PIN, LOW);
@@ -336,14 +517,18 @@ void sendWheelPulse(int speed_mmPs) {
 }
 
 // ===== Send Wheel Angle Sensor Values =====
-void sendAngleSensor(int angle_tenths) {
+void sendAngleSensor(int angle_tenths)
+{
   // angle_tenths range: -250 to +250 (= -25.0 to +25.0 degrees)
   int lSense, rSense;
-  if (angle_tenths >= 0) {
+  if (angle_tenths >= 0)
+  {
     // Right turn
     lSense = L_STRAIGHT + (L_MIN - L_STRAIGHT) * angle_tenths / MAX_ANGLE_TENTHS;
     rSense = R_STRAIGHT + (R_MIN - R_STRAIGHT) * angle_tenths / MAX_ANGLE_TENTHS;
-  } else {
+  }
+  else
+  {
     // Left turn
     lSense = L_STRAIGHT + (L_MAX - L_STRAIGHT) * (-angle_tenths) / MAX_ANGLE_TENTHS;
     rSense = R_STRAIGHT + (R_MAX - R_STRAIGHT) * (-angle_tenths) / MAX_ANGLE_TENTHS;
