@@ -1,0 +1,11 @@
+# In-repo Arduino library wrapper at Non_grapic_simulator/libraries/ is set up
+# so Arduino IDE finds our shared simulator_physics library. Any OTHER
+# libraries a developer installs via Tools -> Manage Libraries (e.g. due_can)
+# will also land there because that's now the sketchbook libraries dir.
+# Ignore everything in libraries/ EXCEPT our own simulator_physics so
+# third-party libs don't pollute the repo.
+Non_grapic_simulator/libraries/*
+!Non_grapic_simulator/libraries/simulator_physics/
+
+# Router sim output
+Non_grapic_simulator/**/SIM*.CSV

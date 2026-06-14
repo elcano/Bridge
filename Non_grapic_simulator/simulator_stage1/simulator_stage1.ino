@@ -39,6 +39,15 @@
  * Reference: https://www.elcanoproject.org/wiki/Communication
  */
 
+// ============================================================================
+// SETUP REQUIRED — this sketch will not compile until the Arduino IDE's
+// Sketchbook Location is pointed at the parent folder of this sketch:
+//   File -> Preferences -> Sketchbook location: <repo>/Non_grapic_simulator
+// The IDE then finds the shared `simulator_physics` library at
+//   ../libraries/simulator_physics/
+// See ../README.md for full setup details + troubleshooting.
+// ============================================================================
+
 #include <SPI.h>
 #include <SD.h>
 
@@ -135,40 +144,20 @@ File logFile;
 bool sdAvailable = false;
 
 // ===== Function Declarations =====
-int  computeSpeed(int throttle, bool brakeOn);
-int  updateAngle(bool lTurn, bool rTurn);
-void updatePosition(int speed, int &heading, int angle);
-void sendWheelPulse(int speed);
-void sendAngleSensor(int angleT);
 void readScriptCommand();
 void sendPosition();
 void sendOrigin();
 
-// ===== Integer sine/cosine (returns value * 1000) =====
-int sin1000(int angle_tenths) {
-  angle_tenths = ((angle_tenths % 3600) + 3600) % 3600;
-  static const int sinTable[91] = {
-    0, 17, 35, 52, 70, 87, 105, 122, 139, 156,
-    174, 191, 208, 225, 242, 259, 276, 292, 309, 326,
-    342, 358, 375, 391, 407, 423, 438, 454, 469, 485,
-    500, 515, 530, 545, 559, 574, 588, 602, 616, 629,
-    643, 656, 669, 682, 695, 707, 719, 731, 743, 755,
-    766, 777, 788, 799, 809, 819, 829, 839, 848, 857,
-    866, 875, 883, 891, 899, 906, 914, 921, 927, 934,
-    940, 946, 951, 956, 961, 966, 970, 974, 978, 982,
-    985, 988, 990, 993, 995, 996, 998, 999, 999, 1000,
-    1000
-  };
-  int deg = angle_tenths / 10;
-  if (angle_tenths < 900)       return sinTable[deg];
-  else if (angle_tenths < 1800) return sinTable[180 - deg];
-  else if (angle_tenths < 2700) return -sinTable[deg - 180];
-  else                          return -sinTable[360 - deg];
-}
-
-int cos1000(int angle_tenths) {
-  return sin1000(angle_tenths + 900);
-}
+// Shared physics engine — provided by the in-repo Arduino library at
+// Non_grapic_simulator/libraries/simulator_physics. Provides: sin1000,
+// cos1000, computeSpeed, updateAngle, updatePosition, sendWheelPulse,
+// sendAngleSensor. See the header for macro/global preconditions.
+// Included AFTER the global variable declarations above because the inline
+// function bodies reference those globals (prevSpeed_mmPs, angle_tenths,
+// X_mm, Y_mm, historyIndex, throttleHistory[], nextPulseTime_ms) by name.
+// SETUP: in Arduino IDE, set File -> Preferences -> Sketchbook location to
+// <repo>/Non_grapic_simulator so the IDE finds the library.
+#include <simulator_physics.h>
 
 // ===== Setup =====
 void setup() {
@@ -265,6 +254,7 @@ void loop() {
     // int rawThrottle = analogRead(THROTTLE_PIN);
     // throttle = rawThrottle / 4;
     // brakeOn  = digitalRead(BRAKE_ON_PIN);
+
     // lTurn    = digitalRead(L_TURN_PIN);
     // rTurn    = digitalRead(R_TURN_PIN);
 
@@ -428,70 +418,5 @@ void sendOrigin() {
   Serial.write((uint8_t)(lon_field      ));
 }
 
-// ===== Compute Speed (integer arithmetic) =====
-int computeSpeed(int throttle, bool brakeOn) {
-  if (brakeOn) { prevSpeed_mmPs = prevSpeed_mmPs * 5000 / 10000; return prevSpeed_mmPs; }
-  long sum = 0;
-  for (int i = THROTTLE_DELAY_START; i <= THROTTLE_DELAY_END; i++) {
-    int idx = (historyIndex - i + THROTTLE_HISTORY) % THROTTLE_HISTORY;
-    sum += throttleHistory[idx];
-  }
-  int meanThrottle = (int)(sum / 8);
-  int estimatedSpeed = 0;
-  if (meanThrottle > MIN_EFFECTIVE_THROTTLE)
-    estimatedSpeed = (int)((long)MAX_SPEED_mmPs *
-                    (meanThrottle - MIN_EFFECTIVE_THROTTLE) /
-                    (MAX_EFFECTIVE_THROTTLE - MIN_EFFECTIVE_THROTTLE));
-  if (estimatedSpeed < 0) estimatedSpeed = 0;
-  int momentum = (int)((long)prevSpeed_mmPs * FRICTION_NUM / FRICTION_DEN);
-  int newSpeed = (momentum > estimatedSpeed) ? momentum : estimatedSpeed;
-  if (newSpeed > MAX_SPEED_mmPs) newSpeed = MAX_SPEED_mmPs;
-  prevSpeed_mmPs = newSpeed;
-  return newSpeed;
-}
-
-// ===== Update Steering Angle =====
-int updateAngle(bool lTurn, bool rTurn) {
-  if (lTurn && !rTurn)      angle_tenths -= ANGLE_CHANGE_TENTHS;
-  else if (!lTurn && rTurn) angle_tenths += ANGLE_CHANGE_TENTHS;
-  if (angle_tenths > MAX_ANGLE_TENTHS)  angle_tenths = MAX_ANGLE_TENTHS;
-  if (angle_tenths < -MAX_ANGLE_TENTHS) angle_tenths = -MAX_ANGLE_TENTHS;
-  return angle_tenths;
-}
-
-// ===== Update Vehicle Position =====
-void updatePosition(int speed, int &heading, int angle) {
-  if (speed > 0) heading += angle / 10;
-  if (heading >= 3600) heading -= 3600;
-  if (heading < 0)     heading += 3600;
-  int distance_mm = speed * LOOP_TIME_MS / 1000;
-  X_mm += (long)distance_mm * sin1000(heading) / 1000;
-  Y_mm += (long)distance_mm * cos1000(heading) / 1000;
-}
-
-// ===== Send Wheel Pulse to DBW =====
-void sendWheelPulse(int speed_mmPs) {
-  if (speed_mmPs <= 0) return;
-  unsigned long pulseInterval_ms = (unsigned long)WHEEL_CIRCUM_MM * 1000 / speed_mmPs;
-  unsigned long now = millis();
-  if (now >= nextPulseTime_ms) {
-    digitalWrite(IRPT_WHEEL_PIN, HIGH);
-    delayMicroseconds(100);
-    digitalWrite(IRPT_WHEEL_PIN, LOW);
-    nextPulseTime_ms = now + pulseInterval_ms;
-  }
-}
-
-// ===== Send Wheel Angle Sensor Values to DBW =====
-void sendAngleSensor(int angleT) {
-  int lSense, rSense;
-  if (angleT >= 0) {
-    lSense = L_STRAIGHT + (L_MIN - L_STRAIGHT) * angleT / MAX_ANGLE_TENTHS;
-    rSense = R_STRAIGHT + (R_MIN - R_STRAIGHT) * angleT / MAX_ANGLE_TENTHS;
-  } else {
-    lSense = L_STRAIGHT + (L_MAX - L_STRAIGHT) * (-angleT) / MAX_ANGLE_TENTHS;
-    rSense = R_STRAIGHT + (R_MAX - R_STRAIGHT) * (-angleT) / MAX_ANGLE_TENTHS;
-  }
-  analogWrite(L_SENSE_PIN, lSense * 4);
-  analogWrite(R_SENSE_PIN, rSense * 4);
-}
+// computeSpeed, updateAngle, updatePosition, sendWheelPulse, sendAngleSensor
+// are defined in ../simulator_physics.h.
