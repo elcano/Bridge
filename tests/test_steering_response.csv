@@ -1,0 +1,37 @@
+# Test: closed-loop steering response (through DBW)
+#
+# Format: time_ms, CANID, nbytes, speed_cmPs, brake, mode, angle_tenths
+#   - Backwards compatible with the existing Stage 2 CSV format.
+#   - `# assert t=<ms>: <expr>` lines are evaluated by tools/test_runner.py
+#     against the SensorHub LOG telemetry stream.
+#
+# Wire path under test:
+#   PC -> SensorHub USB (CMD,350,...)
+#   SensorHub publishes 0x350 NavDrive + 0x100 NavStatus on CAN
+#   DBW PID reads 0x350 -> drives L_TURN / R_TURN pins
+#   Router observes pins -> integrates angle_tenths
+#   Router publishes 0x430 SimSteerActual -> DBW reads -> emits 0x400
+#   SensorHub captures 0x400 int16[2] as actual_angle_tenths -> LOG line
+#
+# Slew expectation:
+#   Router: ANGLE_CHANGE_TENTHS=20 per 100ms loop  =>  ~200 deg*10 / sec
+#   Full-lock-to-full-lock (~420 deg*10): ~2.1s of pure Router slew
+#   + DBW PID latency + CAN propagation -> samples at least 800ms after
+#   the last commanded transition to give the loop time to settle.
+
+# Cruise straight; baseline check.
+0,350,6,1500,0,1,0
+# assert t=900: -20 <= actual_angle_tenths <= 20
+
+# Command full right (+25 deg = 250 tenths). Slew is 200 deg*10/sec, so
+# 0 -> 250 takes 1.25 s.
+1000,350,6,1500,0,1,250
+# assert t=2800: 200 <= actual_angle_tenths <= 250
+
+# Command full left (-25 deg). Full-lock-to-full-lock = 500/200 = 2.5 s.
+4000,350,6,1500,0,1,-250
+# assert t=6700: -250 <= actual_angle_tenths <= -200
+
+# Return to center. 250 -> 0 takes 1.25 s.
+8000,350,6,1500,0,1,0
+# assert t=9800: -20 <= actual_angle_tenths <= 20
