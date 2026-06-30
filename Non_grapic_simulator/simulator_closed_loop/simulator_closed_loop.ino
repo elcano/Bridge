@@ -98,6 +98,9 @@
 #define BRAKE_VOLT_PIN  42
 // From DBW D44
 #define BRAKE_ON_PIN    48
+// DBW relay logic on Bridge is active-low: LOW means brake engaged.
+// Set to false only if your brake control wiring is active-high.
+#define BRAKE_ON_ACTIVE_LOW true
 // From DBW D26 — HIGH while DBW wants to turn left
 #define L_TURN_PIN      4
 // From DBW D28 — HIGH while DBW wants to turn right
@@ -279,9 +282,13 @@ void loop() {
   //   R_TURN_PIN   (D2)  <- DBW RIGHT_TURN_PIN (D28): HIGH = turn right
   int rawThrottle = analogRead(THROTTLE_PIN);
   int throttle = rawThrottle / 4;
-  // BRAKE derived from throttle below the effective threshold. When Nav
-  // commands speed=0, DBW's throttle PID outputs 0 and we treat that as brake.
-  bool brakeOn = (throttle < MIN_EFFECTIVE_THROTTLE);
+  int brakePinRaw = digitalRead(BRAKE_ON_PIN);
+  // Use DBW's explicit brake command wire instead of inferring brake from
+  // throttle level. Inferring from throttle suppresses low-speed motion
+  // (e.g. Nav speed=100 cm/s) because throttle may stay < MIN_EFFECTIVE_THROTTLE
+  // during PID ramp-up even when brakes are released.
+  bool brakeOn = BRAKE_ON_ACTIVE_LOW ? (brakePinRaw == LOW)
+                                     : (brakePinRaw == HIGH);
 
   // Steering via two digital wires from DBW (L_TURN D4, R_TURN D2).
   bool lTurn = (digitalRead(L_TURN_PIN) == HIGH);
@@ -293,6 +300,7 @@ void loop() {
     dbgCount = 0;
     LOG_PORT.print("# L=");         LOG_PORT.print(lTurn ? 1 : 0);
     LOG_PORT.print(" R=");          LOG_PORT.print(rTurn ? 1 : 0);
+    LOG_PORT.print(" B=");          LOG_PORT.print(brakeOn ? 1 : 0);
     LOG_PORT.print(" ang_tenths="); LOG_PORT.print(angle_tenths);
     LOG_PORT.print(" speed=");      LOG_PORT.println(speed_mmPs);
   }
