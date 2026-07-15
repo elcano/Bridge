@@ -1,0 +1,10 @@
+# Test: straight line position accuracy
+#
+# Drive straight at cruise speed
+0,350,6,1500,0,1,0
+# assert t=2000: north_cm > 100
+# assert t=2000: -20 <= east_cm <= 20
+# assert t=4000: north_cm > 200
+# assert t=4000: -20 <= east_cm <= 20
+# assert t=6000: north_cm > 400
+# assert t=6000: -20 <= east_cm <= 20

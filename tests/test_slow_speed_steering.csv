@@ -1,0 +1,16 @@
+# Test: steering at low speed
+#
+# Start at low speed, centered
+0,350,6,300,0,1,0
+# assert t=900: -20 <= actual_angle_tenths <= 20
+# assert t=900: cmd_speed_cmPs > 10
+# Command right turn at low speed
+1000,350,6,300,0,1,200
+# assert t=3000: 180 <= actual_angle_tenths <= 220
+# assert t=3000: cmd_speed_cmPs > 10
+# Command left turn at low speed
+4000,350,6,300,0,1,-200
+# assert t=6000: -220 <= actual_angle_tenths <= -180
+# Return to center
+7000,350,6,300,0,1,0
+# assert t=8500: -20 <= actual_angle_tenths <= 20

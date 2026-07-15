@@ -1,0 +1,15 @@
+# Test: gradual acceleration and position tracking
+#
+# Format: time_ms, CANID, nbytes, speed_cmPs, brake, mode, angle_tenths
+#
+# Start from rest, command low speed
+0,350,6,500,0,1,0
+# assert t=2000: cmd_speed_cmPs > 20
+# assert t=2000: north_cm > 0
+# Command medium speed
+3000,350,6,1000,0,1,0
+# assert t=5000: cmd_speed_cmPs > 50
+# Command cruise speed
+6000,350,6,1500,0,1,0
+# assert t=8000: cmd_speed_cmPs > 100
+# assert t=8000: north_cm > 500
