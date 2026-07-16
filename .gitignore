@@ -9,3 +9,8 @@ Non_grapic_simulator/libraries/*
 
 # Router sim output
 Non_grapic_simulator/**/SIM*.CSV
+
+# Python cache files
+__pycache__/
+*.py[cod]
+test_results/
