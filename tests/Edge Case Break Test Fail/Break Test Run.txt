@@ -1,0 +1,115 @@
+PS C:\projects\elcano-bridge> python tools/test_runner.py --verbose tests/32_edge_cases_break.csv COM24
+Loaded 3 commands and 4 assertions from tests/32_edge_cases_break.csv
+Resetting to baseline (center + stop) before test...
+  [reset] angle=-200 dbw=-200 speed=130 streak=0
+  [reset] angle=-180 dbw=-200 speed=65 streak=0
+  [reset] angle=-160 dbw=-180 speed=32 streak=0
+  [reset] angle=-140 dbw=-160 speed=16 streak=0
+  [reset] angle=-120 dbw=-140 speed=8 streak=0
+  [reset] angle=-100 dbw=-120 speed=4 streak=0
+  [reset] angle=-80 dbw=-100 speed=2 streak=0
+  [reset] angle=-60 dbw=-80 speed=1 streak=0
+  [reset] angle=-40 dbw=-60 speed=0 streak=0
+  [reset] angle=-20 dbw=-40 speed=0 streak=1
+  [reset] angle=0 dbw=-20 speed=0 streak=2
+  [reset] angle=0 dbw=0 speed=0 streak=3
+  Baseline reached: wheel centered, stopped, DBW tracking.
+  [     0 ms] -> CMD,350,1500,0,1,400
+  [    93 ms] ACK,44081
+  [    93 ms] LOG,44081,east_cm=-547,north_cm=-642,heading_centiDeg=12080,actual_angle_tenths=0,dbw_angle_tenths=0,cmd_angle_tenths=400,sim_speed_cmPs=0,cmd_speed_cmPs=1500
+  [   188 ms] LOG,44181,east_cm=-547,north_cm=-642,heading_centiDeg=12080,actual_angle_tenths=20,dbw_angle_tenths=0,cmd_angle_tenths=400,sim_speed_cmPs=0,cmd_speed_cmPs=1500
+  [   296 ms] LOG,44281,east_cm=-547,north_cm=-642,heading_centiDeg=12080,actual_angle_tenths=40,dbw_angle_tenths=20,cmd_angle_tenths=400,sim_speed_cmPs=0,cmd_speed_cmPs=1500
+  [   391 ms] LOG,44381,east_cm=-547,north_cm=-642,heading_centiDeg=12080,actual_angle_tenths=60,dbw_angle_tenths=40,cmd_angle_tenths=400,sim_speed_cmPs=0,cmd_speed_cmPs=1500
+  [   500 ms] LOG,44481,east_cm=-547,north_cm=-642,heading_centiDeg=12160,actual_angle_tenths=80,dbw_angle_tenths=60,cmd_angle_tenths=400,sim_speed_cmPs=9,cmd_speed_cmPs=1500
+  [   593 ms] LOG,44581,east_cm=-544,north_cm=-644,heading_centiDeg=12260,actual_angle_tenths=100,dbw_angle_tenths=80,cmd_angle_tenths=400,sim_speed_cmPs=30,cmd_speed_cmPs=1500
+  [   703 ms] LOG,44681,east_cm=-540,north_cm=-646,heading_centiDeg=12380,actual_angle_tenths=120,dbw_angle_tenths=100,cmd_angle_tenths=400,sim_speed_cmPs=50,cmd_speed_cmPs=1500
+  [   796 ms] LOG,44781,east_cm=-534,north_cm=-650,heading_centiDeg=12520,actual_angle_tenths=140,dbw_angle_tenths=120,cmd_angle_tenths=400,sim_speed_cmPs=70,cmd_speed_cmPs=1500
+  [   891 ms] LOG,44881,east_cm=-527,north_cm=-656,heading_centiDeg=12680,actual_angle_tenths=160,dbw_angle_tenths=140,cmd_angle_tenths=400,sim_speed_cmPs=91,cmd_speed_cmPs=1500
+  [  1000 ms] LOG,44981,east_cm=-518,north_cm=-662,heading_centiDeg=12860,actual_angle_tenths=180,dbw_angle_tenths=160,cmd_angle_tenths=400,sim_speed_cmPs=111,cmd_speed_cmPs=1500
+  [  1093 ms] LOG,45081,east_cm=-509,north_cm=-671,heading_centiDeg=13060,actual_angle_tenths=200,dbw_angle_tenths=180,cmd_angle_tenths=400,sim_speed_cmPs=130,cmd_speed_cmPs=1500
+  [  1188 ms] LOG,45181,east_cm=-499,north_cm=-679,heading_centiDeg=13280,actual_angle_tenths=220,dbw_angle_tenths=200,cmd_angle_tenths=400,sim_speed_cmPs=130,cmd_speed_cmPs=1500
+  [  1296 ms] LOG,45281,east_cm=-490,north_cm=-688,heading_centiDeg=13520,actual_angle_tenths=240,dbw_angle_tenths=220,cmd_angle_tenths=400,sim_speed_cmPs=130,cmd_speed_cmPs=1500
+  [  1391 ms] LOG,45381,east_cm=-481,north_cm=-698,heading_centiDeg=13770,actual_angle_tenths=250,dbw_angle_tenths=240,cmd_angle_tenths=400,sim_speed_cmPs=130,cmd_speed_cmPs=1500
+  [  1391 ms] -> CMD,350,1500,0,1,-400
+  [  1485 ms] ACK,45481
+  [  1500 ms] LOG,45481,east_cm=-473,north_cm=-708,heading_centiDeg=14020,actual_angle_tenths=250,dbw_angle_tenths=250,cmd_angle_tenths=-400,sim_speed_cmPs=130,cmd_speed_cmPs=1500
+  [  1593 ms] LOG,45581,east_cm=-465,north_cm=-718,heading_centiDeg=14250,actual_angle_tenths=230,dbw_angle_tenths=250,cmd_angle_tenths=-400,sim_speed_cmPs=130,cmd_speed_cmPs=1500
+  [  1688 ms] LOG,45681,east_cm=-457,north_cm=-729,heading_centiDeg=14460,actual_angle_tenths=210,dbw_angle_tenths=230,cmd_angle_tenths=-400,sim_speed_cmPs=130,cmd_speed_cmPs=1500
+  [  1796 ms] LOG,45781,east_cm=-450,north_cm=-739,heading_centiDeg=14650,actual_angle_tenths=190,dbw_angle_tenths=210,cmd_angle_tenths=-400,sim_speed_cmPs=130,cmd_speed_cmPs=1500
+  [  1891 ms] LOG,45881,east_cm=-443,north_cm=-750,heading_centiDeg=14820,actual_angle_tenths=170,dbw_angle_tenths=190,cmd_angle_tenths=-400,sim_speed_cmPs=130,cmd_speed_cmPs=1500
+  [  2000 ms] LOG,45981,east_cm=-437,north_cm=-761,heading_centiDeg=14970,actual_angle_tenths=150,dbw_angle_tenths=170,cmd_angle_tenths=-400,sim_speed_cmPs=130,cmd_speed_cmPs=1500
+  [  2093 ms] LOG,46081,east_cm=-430,north_cm=-773,heading_centiDeg=15100,actual_angle_tenths=130,dbw_angle_tenths=150,cmd_angle_tenths=-400,sim_speed_cmPs=130,cmd_speed_cmPs=1500
+  [  2188 ms] LOG,46181,east_cm=-424,north_cm=-784,heading_centiDeg=15210,actual_angle_tenths=110,dbw_angle_tenths=130,cmd_angle_tenths=-400,sim_speed_cmPs=130,cmd_speed_cmPs=1500
+  [  2296 ms] LOG,46281,east_cm=-418,north_cm=-796,heading_centiDeg=15300,actual_angle_tenths=90,dbw_angle_tenths=110,cmd_angle_tenths=-400,sim_speed_cmPs=130,cmd_speed_cmPs=1500
+  [  2391 ms] LOG,46381,east_cm=-412,north_cm=-807,heading_centiDeg=15370,actual_angle_tenths=70,dbw_angle_tenths=90,cmd_angle_tenths=-400,sim_speed_cmPs=130,cmd_speed_cmPs=1500
+  [  2500 ms] LOG,46481,east_cm=-407,north_cm=-819,heading_centiDeg=15420,actual_angle_tenths=50,dbw_angle_tenths=70,cmd_angle_tenths=-400,sim_speed_cmPs=130,cmd_speed_cmPs=1500
+  [  2593 ms] LOG,46581,east_cm=-401,north_cm=-830,heading_centiDeg=15450,actual_angle_tenths=30,dbw_angle_tenths=50,cmd_angle_tenths=-400,sim_speed_cmPs=130,cmd_speed_cmPs=1500
+  [  2688 ms] LOG,46681,east_cm=-396,north_cm=-842,heading_centiDeg=15460,actual_angle_tenths=10,dbw_angle_tenths=30,cmd_angle_tenths=-400,sim_speed_cmPs=130,cmd_speed_cmPs=1500
+  [  2796 ms] LOG,46781,east_cm=-390,north_cm=-853,heading_centiDeg=15450,actual_angle_tenths=-10,dbw_angle_tenths=10,cmd_angle_tenths=-400,sim_speed_cmPs=130,cmd_speed_cmPs=1500
+  [  2891 ms] LOG,46881,east_cm=-384,north_cm=-865,heading_centiDeg=15420,actual_angle_tenths=-30,dbw_angle_tenths=-10,cmd_angle_tenths=-400,sim_speed_cmPs=130,cmd_speed_cmPs=1500
+  [  3000 ms] LOG,46981,east_cm=-379,north_cm=-877,heading_centiDeg=15370,actual_angle_tenths=-50,dbw_angle_tenths=-30,cmd_angle_tenths=-400,sim_speed_cmPs=130,cmd_speed_cmPs=1500
+  [  3093 ms] LOG,47081,east_cm=-373,north_cm=-888,heading_centiDeg=15300,actual_angle_tenths=-70,dbw_angle_tenths=-50,cmd_angle_tenths=-400,sim_speed_cmPs=130,cmd_speed_cmPs=1500
+  [  3188 ms] LOG,47181,east_cm=-367,north_cm=-899,heading_centiDeg=15210,actual_angle_tenths=-90,dbw_angle_tenths=-70,cmd_angle_tenths=-400,sim_speed_cmPs=130,cmd_speed_cmPs=1500
+  [  3296 ms] LOG,47281,east_cm=-360,north_cm=-911,heading_centiDeg=15100,actual_angle_tenths=-110,dbw_angle_tenths=-90,cmd_angle_tenths=-400,sim_speed_cmPs=130,cmd_speed_cmPs=1500
+  [  3391 ms] LOG,47381,east_cm=-354,north_cm=-922,heading_centiDeg=14970,actual_angle_tenths=-130,dbw_angle_tenths=-110,cmd_angle_tenths=-400,sim_speed_cmPs=130,cmd_speed_cmPs=1500
+  [  3500 ms] LOG,47481,east_cm=-347,north_cm=-933,heading_centiDeg=14820,actual_angle_tenths=-150,dbw_angle_tenths=-130,cmd_angle_tenths=-400,sim_speed_cmPs=130,cmd_speed_cmPs=1500
+  [  3593 ms] LOG,47581,east_cm=-340,north_cm=-944,heading_centiDeg=14650,actual_angle_tenths=-170,dbw_angle_tenths=-150,cmd_angle_tenths=-400,sim_speed_cmPs=130,cmd_speed_cmPs=1500
+  [  3688 ms] LOG,47681,east_cm=-332,north_cm=-954,heading_centiDeg=14460,actual_angle_tenths=-190,dbw_angle_tenths=-170,cmd_angle_tenths=-400,sim_speed_cmPs=130,cmd_speed_cmPs=1500
+  [  3796 ms] LOG,47781,east_cm=-324,north_cm=-964,heading_centiDeg=14250,actual_angle_tenths=-210,dbw_angle_tenths=-190,cmd_angle_tenths=-400,sim_speed_cmPs=130,cmd_speed_cmPs=1500
+  [  3891 ms] LOG,47881,east_cm=-316,north_cm=-974,heading_centiDeg=14020,actual_angle_tenths=-230,dbw_angle_tenths=-210,cmd_angle_tenths=-400,sim_speed_cmPs=130,cmd_speed_cmPs=1500
+  [  4000 ms] LOG,47981,east_cm=-307,north_cm=-984,heading_centiDeg=13770,actual_angle_tenths=-250,dbw_angle_tenths=-230,cmd_angle_tenths=-400,sim_speed_cmPs=130,cmd_speed_cmPs=1500
+  [  4093 ms] LOG,48081,east_cm=-298,north_cm=-993,heading_centiDeg=13520,actual_angle_tenths=-250,dbw_angle_tenths=-250,cmd_angle_tenths=-400,sim_speed_cmPs=130,cmd_speed_cmPs=1500
+  [  4110 ms] -> CMD,350,3000,2,1,0
+  [  4188 ms] ACK,48181
+  [  4188 ms] LOG,48181,east_cm=-288,north_cm=-1001,heading_centiDeg=13270,actual_angle_tenths=-250,dbw_angle_tenths=-250,cmd_angle_tenths=0,sim_speed_cmPs=130,cmd_speed_cmPs=3000
+  [  4296 ms] LOG,48281,east_cm=-278,north_cm=-1010,heading_centiDeg=13040,actual_angle_tenths=-230,dbw_angle_tenths=-250,cmd_angle_tenths=0,sim_speed_cmPs=130,cmd_speed_cmPs=3000
+  [  4391 ms] LOG,48381,east_cm=-268,north_cm=-1018,heading_centiDeg=12830,actual_angle_tenths=-210,dbw_angle_tenths=-230,cmd_angle_tenths=0,sim_speed_cmPs=130,cmd_speed_cmPs=3000
+  [  4500 ms] LOG,48481,east_cm=-258,north_cm=-1025,heading_centiDeg=12640,actual_angle_tenths=-190,dbw_angle_tenths=-210,cmd_angle_tenths=0,sim_speed_cmPs=130,cmd_speed_cmPs=3000
+  [  4593 ms] LOG,48581,east_cm=-247,north_cm=-1032,heading_centiDeg=12470,actual_angle_tenths=-170,dbw_angle_tenths=-190,cmd_angle_tenths=0,sim_speed_cmPs=130,cmd_speed_cmPs=3000
+  [  4688 ms] LOG,48681,east_cm=-236,north_cm=-1039,heading_centiDeg=12320,actual_angle_tenths=-150,dbw_angle_tenths=-170,cmd_angle_tenths=0,sim_speed_cmPs=130,cmd_speed_cmPs=3000
+  [  4796 ms] LOG,48781,east_cm=-225,north_cm=-1046,heading_centiDeg=12190,actual_angle_tenths=-130,dbw_angle_tenths=-150,cmd_angle_tenths=0,sim_speed_cmPs=130,cmd_speed_cmPs=3000
+  [  4891 ms] LOG,48881,east_cm=-214,north_cm=-1053,heading_centiDeg=12080,actual_angle_tenths=-110,dbw_angle_tenths=-130,cmd_angle_tenths=0,sim_speed_cmPs=130,cmd_speed_cmPs=3000
+  [  5000 ms] LOG,48981,east_cm=-203,north_cm=-1059,heading_centiDeg=11990,actual_angle_tenths=-90,dbw_angle_tenths=-110,cmd_angle_tenths=0,sim_speed_cmPs=130,cmd_speed_cmPs=3000
+  [  5093 ms] LOG,49081,east_cm=-191,north_cm=-1065,heading_centiDeg=11920,actual_angle_tenths=-70,dbw_angle_tenths=-90,cmd_angle_tenths=0,sim_speed_cmPs=130,cmd_speed_cmPs=3000
+  [  5188 ms] LOG,49181,east_cm=-180,north_cm=-1071,heading_centiDeg=11870,actual_angle_tenths=-50,dbw_angle_tenths=-70,cmd_angle_tenths=0,sim_speed_cmPs=130,cmd_speed_cmPs=3000
+  [  5296 ms] LOG,49281,east_cm=-168,north_cm=-1077,heading_centiDeg=11840,actual_angle_tenths=-30,dbw_angle_tenths=-50,cmd_angle_tenths=0,sim_speed_cmPs=130,cmd_speed_cmPs=3000
+  [  5391 ms] LOG,49381,east_cm=-157,north_cm=-1083,heading_centiDeg=11830,actual_angle_tenths=-10,dbw_angle_tenths=-30,cmd_angle_tenths=0,sim_speed_cmPs=130,cmd_speed_cmPs=3000
+  [  5500 ms] LOG,49481,east_cm=-146,north_cm=-1089,heading_centiDeg=11840,actual_angle_tenths=10,dbw_angle_tenths=-10,cmd_angle_tenths=0,sim_speed_cmPs=130,cmd_speed_cmPs=3000
+  [  5593 ms] LOG,49581,east_cm=-134,north_cm=-1095,heading_centiDeg=11830,actual_angle_tenths=-10,dbw_angle_tenths=10,cmd_angle_tenths=0,sim_speed_cmPs=130,cmd_speed_cmPs=3000
+  [  5688 ms] LOG,49681,east_cm=-123,north_cm=-1101,heading_centiDeg=11840,actual_angle_tenths=10,dbw_angle_tenths=-10,cmd_angle_tenths=0,sim_speed_cmPs=130,cmd_speed_cmPs=3000
+  [  5796 ms] LOG,49781,east_cm=-111,north_cm=-1107,heading_centiDeg=11830,actual_angle_tenths=-10,dbw_angle_tenths=10,cmd_angle_tenths=0,sim_speed_cmPs=130,cmd_speed_cmPs=3000
+  [  5891 ms] LOG,49881,east_cm=-100,north_cm=-1113,heading_centiDeg=11840,actual_angle_tenths=10,dbw_angle_tenths=-10,cmd_angle_tenths=0,sim_speed_cmPs=130,cmd_speed_cmPs=3000
+  [  6000 ms] LOG,49981,east_cm=-89,north_cm=-1119,heading_centiDeg=11830,actual_angle_tenths=-10,dbw_angle_tenths=10,cmd_angle_tenths=0,sim_speed_cmPs=130,cmd_speed_cmPs=3000
+  [  6093 ms] LOG,50081,east_cm=-77,north_cm=-1125,heading_centiDeg=11840,actual_angle_tenths=10,dbw_angle_tenths=-10,cmd_angle_tenths=0,sim_speed_cmPs=130,cmd_speed_cmPs=3000
+  [  6188 ms] LOG,50181,east_cm=-66,north_cm=-1131,heading_centiDeg=11830,actual_angle_tenths=-10,dbw_angle_tenths=10,cmd_angle_tenths=0,sim_speed_cmPs=130,cmd_speed_cmPs=3000
+  [  6296 ms] LOG,50281,east_cm=-54,north_cm=-1137,heading_centiDeg=11840,actual_angle_tenths=10,dbw_angle_tenths=-10,cmd_angle_tenths=0,sim_speed_cmPs=130,cmd_speed_cmPs=3000
+  [  6391 ms] LOG,50381,east_cm=-43,north_cm=-1143,heading_centiDeg=11830,actual_angle_tenths=-10,dbw_angle_tenths=10,cmd_angle_tenths=0,sim_speed_cmPs=130,cmd_speed_cmPs=3000
+  [  6500 ms] LOG,50481,east_cm=-32,north_cm=-1149,heading_centiDeg=11840,actual_angle_tenths=10,dbw_angle_tenths=-10,cmd_angle_tenths=0,sim_speed_cmPs=130,cmd_speed_cmPs=3000
+  [  6593 ms] LOG,50581,east_cm=-20,north_cm=-1155,heading_centiDeg=11830,actual_angle_tenths=-10,dbw_angle_tenths=10,cmd_angle_tenths=0,sim_speed_cmPs=130,cmd_speed_cmPs=3000
+  [  6688 ms] LOG,50681,east_cm=-9,north_cm=-1161,heading_centiDeg=11840,actual_angle_tenths=10,dbw_angle_tenths=-10,cmd_angle_tenths=0,sim_speed_cmPs=130,cmd_speed_cmPs=3000
+  [  6796 ms] LOG,50781,east_cm=2,north_cm=-1167,heading_centiDeg=11830,actual_angle_tenths=-10,dbw_angle_tenths=10,cmd_angle_tenths=0,sim_speed_cmPs=130,cmd_speed_cmPs=3000
+  [  6891 ms] LOG,50881,east_cm=13,north_cm=-1173,heading_centiDeg=11840,actual_angle_tenths=10,dbw_angle_tenths=-10,cmd_angle_tenths=0,sim_speed_cmPs=130,cmd_speed_cmPs=3000
+  [  7000 ms] LOG,50981,east_cm=24,north_cm=-1179,heading_centiDeg=11830,actual_angle_tenths=-10,dbw_angle_tenths=10,cmd_angle_tenths=0,sim_speed_cmPs=130,cmd_speed_cmPs=3000
+  [  7093 ms] LOG,51081,east_cm=36,north_cm=-1185,heading_centiDeg=11840,actual_angle_tenths=10,dbw_angle_tenths=-10,cmd_angle_tenths=0,sim_speed_cmPs=130,cmd_speed_cmPs=3000
+  [  7188 ms] LOG,51181,east_cm=47,north_cm=-1191,heading_centiDeg=11830,actual_angle_tenths=-10,dbw_angle_tenths=10,cmd_angle_tenths=0,sim_speed_cmPs=130,cmd_speed_cmPs=3000
+  [  7296 ms] LOG,51281,east_cm=59,north_cm=-1197,heading_centiDeg=11840,actual_angle_tenths=10,dbw_angle_tenths=-10,cmd_angle_tenths=0,sim_speed_cmPs=130,cmd_speed_cmPs=3000
+  [  7391 ms] LOG,51381,east_cm=70,north_cm=-1203,heading_centiDeg=11830,actual_angle_tenths=-10,dbw_angle_tenths=10,cmd_angle_tenths=0,sim_speed_cmPs=130,cmd_speed_cmPs=3000
+  [  7500 ms] LOG,51481,east_cm=81,north_cm=-1209,heading_centiDeg=11840,actual_angle_tenths=10,dbw_angle_tenths=-10,cmd_angle_tenths=0,sim_speed_cmPs=130,cmd_speed_cmPs=3000
+  [  7578 ms] LOG,51581,east_cm=93,north_cm=-1215,heading_centiDeg=11830,actual_angle_tenths=-10,dbw_angle_tenths=10,cmd_angle_tenths=0,sim_speed_cmPs=132,cmd_speed_cmPs=3000
+  [  7688 ms] LOG,51681,east_cm=104,north_cm=-1221,heading_centiDeg=11840,actual_angle_tenths=10,dbw_angle_tenths=-10,cmd_angle_tenths=0,sim_speed_cmPs=130,cmd_speed_cmPs=3000
+  [  7796 ms] LOG,51781,east_cm=116,north_cm=-1227,heading_centiDeg=11830,actual_angle_tenths=-10,dbw_angle_tenths=10,cmd_angle_tenths=0,sim_speed_cmPs=130,cmd_speed_cmPs=3000
+  [  7891 ms] LOG,51881,east_cm=127,north_cm=-1233,heading_centiDeg=11840,actual_angle_tenths=10,dbw_angle_tenths=-10,cmd_angle_tenths=0,sim_speed_cmPs=130,cmd_speed_cmPs=3000
+
+============================================================
+Assertions (4):
+  [PASS] t= 1400 ms: 240 <= actual_angle_tenths <= 250
+           @ t=1391 (Δ -9 ms) → 240 <= 250 <= 250
+  [PASS] t= 4100 ms: -250 <= actual_angle_tenths <= -240
+           @ t=4093 (Δ -7 ms) → -250 <= -250 <= -240
+  [FAIL] t= 6800 ms: sim_speed_cmPs < 20
+           @ t=6796 (Δ -4 ms) → 130 < 20
+  [PASS] t= 6800 ms: -20 <= actual_angle_tenths <= 20
+           @ t=6796 (Δ -4 ms) → -20 <= -10 <= 20
+
+Summary: 3 passed, 1 failed, 79 LOG samples captured
+PS C:\projects\elcano-bridge>

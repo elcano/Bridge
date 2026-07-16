@@ -1,0 +1,14 @@
+# Test: Overflow / absurd speed command. Command a wildly out-of-range speed.
+#       The system must clamp to a sane maximum and keep moving FORWARD - it must
+#       not integer-wrap to a negative/zero speed or otherwise explode.
+# Physics: sim clamps to MAX_SPEED and the DBW throttle PID saturates, so the
+#       observed speed tops out well under 300 cm/s regardless of the command.
+# Format: time_ms, CANID, nbytes, speed_cmPs, brake, mode, angle_tenths
+#   brake: 0=off, nonzero=ON   mode: 1=auto
+# Assertions use LOG fields: actual_angle_tenths, sim_speed_cmPs
+
+0,350,6,30000,0,1,0
+# Must move forward (did not wrap to negative/zero)...
+# assert t=3000: sim_speed_cmPs > 50
+# ...and must be clamped to a sane maximum (did not explode).
+# assert t=3000: sim_speed_cmPs < 300

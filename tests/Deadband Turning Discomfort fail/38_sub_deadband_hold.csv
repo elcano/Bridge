@@ -1,0 +1,11 @@
+# Test: Sub-deadband hold. Command a tiny steering angle below the steering
+#       deadband (DEADBAND_DegX10 = 5, i.e. 5 tenths). The controller should
+#       ignore it and hold near center - NOT chatter or drive toward a lock.
+# Format: time_ms, CANID, nbytes, speed_cmPs, brake, mode, angle_tenths
+#   brake: 0=off, nonzero=ON   mode: 1=auto
+# Assertions use LOG fields: actual_angle_tenths, sim_speed_cmPs
+
+0,350,6,1500,0,1,3
+# A +3 tenth command is below the deadband; wheel must stay near center.
+# assert t=2000: -10 <= actual_angle_tenths <= 10
+# assert t=4000: -10 <= actual_angle_tenths <= 10

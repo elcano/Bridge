@@ -1,0 +1,33 @@
+# Test: Edge-case break test. Deliberately stresses limits and conflicts to
+#       surface real firmware bugs (clamping, max-span slew, brake/throttle
+#       arbitration). Every phase has a well-defined CORRECT outcome, so any
+#       failure is a genuine finding, not a flaky window.
+#
+# Slew physics: ~20 tenths per 100ms loop (200 deg x10 / sec). Steering clamps
+#       to full lock: +250 tenths right (25 deg), -240..-250 left. Brake 2 = 24V.
+#
+# NOTE on fields: actual_angle_tenths is the STEERING wheel angle (+/-250 max),
+#       NOT the trike heading. heading_centiDeg is the trike's direction.
+#
+# Phase 1 (t=0):    command +400 -> must CLAMP to +250 (no overshoot / no wrap).
+# Phase 2 (t=1400): command -400 -> a full +250 -> -250 reversal is 500 tenths
+#                   (~2500ms) then clamps at left lock.
+# Phase 3 (t=4100): command MAX throttle 3000 AND full brake 2 at once ->
+#                   SAFE behavior is brake wins: vehicle must NOT accelerate.
+#                   Also recenter the wheel to 0 and confirm it obeys.
+#
+# Format: time_ms, CANID, nbytes, speed_cmPs, brake, mode, angle_tenths
+#   brake: 0=off, 1=hold/12V, 2=on/24V   mode: 1=auto
+# Assertions use LOG fields: actual_angle_tenths, sim_speed_cmPs
+
+0,350,6,1500,0,1,400
+# Over-limit right must clamp to full lock, not overshoot or wrap negative.
+# assert t=1400: 240 <= actual_angle_tenths <= 250
+1400,350,6,1500,0,1,-400
+# Max-span hard reversal (+250 -> -250 = 500 tenths) then clamp at left lock.
+# assert t=4100: -250 <= actual_angle_tenths <= -240
+4100,350,6,3000,2,1,0
+# SAFETY: full throttle + full brake together -> brake must dominate (no accel).
+# assert t=6800: sim_speed_cmPs < 20
+# Wheel must also recenter despite the throttle/brake conflict.
+# assert t=6800: -20 <= actual_angle_tenths <= 20

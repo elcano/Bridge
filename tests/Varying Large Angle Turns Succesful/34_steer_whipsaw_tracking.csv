@@ -1,0 +1,19 @@
+# Test: Steering whipsaw / command-tracking. Fire hard left/right reversals
+#       FASTER than the wheel can slew, before it ever settles, then hold the
+#       final command. The controller must always chase the LATEST command and
+#       end at the last one commanded (no stale-command win, no lockup).
+# Physics: ~20 tenths/100ms. A worst-case full +250 -> -250 swing is 500 tenths
+#       (~2500ms); the final settle window allows for that.
+# Format: time_ms, CANID, nbytes, speed_cmPs, brake, mode, angle_tenths
+#   brake: 0=off, nonzero=ON   mode: 1=auto
+# Assertions use LOG fields: actual_angle_tenths, sim_speed_cmPs
+
+0,350,6,1500,0,1,250
+800,350,6,1500,0,1,-250
+1600,350,6,1500,0,1,250
+2400,350,6,1500,0,1,-250
+# After the whipsaw, the wheel must settle at the LAST command (-250),
+# proving it tracked the newest command through all the reversals.
+# assert t=5000: -250 <= actual_angle_tenths <= -240
+# ...and it never stalled the drive.
+# assert t=5000: sim_speed_cmPs > 50

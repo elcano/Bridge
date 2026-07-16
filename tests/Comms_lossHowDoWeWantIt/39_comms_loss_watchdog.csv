@@ -1,0 +1,17 @@
+# Test: Stale-command watchdog / comms-loss fail-safe. Drive at cruise with fresh
+#       commands, then Nav goes SILENT. A watchdog must fail-safe to a stop rather
+#       than coast forever on the last command.
+# Physics: speed ramps 0->130 in ~1s; the last command normally persists indefinitely,
+#       so this test only stops if a stale-command timeout exists.
+# Format: time_ms, CANID, nbytes, speed_cmPs, brake, mode, angle_tenths
+#   brake: 0=off, 1=hold/12V, 2=on/24V   mode: 1=auto
+# Assertions use LOG fields: actual_angle_tenths, sim_speed_cmPs
+
+0,350,6,1500,0,1,0
+500,350,6,1500,0,1,0
+1000,350,6,1500,0,1,0
+1500,350,6,1500,0,1,0
+2000,350,6,1500,0,1,0
+# ^ last command. Nav stops transmitting after t=2000.
+# assert t=2000: sim_speed_cmPs > 50
+# assert t=4000: sim_speed_cmPs < 20

@@ -54,6 +54,71 @@ ASSERT_PATTERN = re.compile(r"^\s*#\s*assert\s+t=(\d+)\s*:\s*(.+?)\s*$")
 LOG_PATTERN = re.compile(r"^LOG,(\d+),(.+)$")
 
 
+def parse_log_fields(line: str):
+    """Return the key=val int fields of a LOG line, or None if not a LOG line."""
+    m = LOG_PATTERN.match(line)
+    if not m:
+        return None
+    fields = {}
+    for kv in m.group(2).split(","):
+        if "=" in kv:
+            k, v = kv.split("=", 1)
+            try:
+                fields[k.strip()] = int(v.strip())
+            except ValueError:
+                pass
+    return fields
+
+
+def baseline_reset(ser: "serial.Serial", timeout_s: float = 8.0,
+                   verbose: bool = False) -> bool:
+    """Put the rig in a known baseline state before a test's clock starts.
+
+    Each CSV is an independent test case, not a continuous mission — so we give
+    every test the same clean starting condition a fresh power-on would give:
+    wheel centered, vehicle stopped. This runs ONCE per CSV, before any of that
+    test's commands, so it establishes the initial condition the test assumes;
+    it never runs mid-test where it could pre-satisfy an assertion.
+
+    Holds 'speed 0, full brake, center' until the rig reports the wheel within
+    +/-20 tenths and speed under 20 cm/s for a few consecutive samples, AND the
+    DBW's reported angle tracks the sim's actual (proving the DBW loop is alive,
+    not frozen). Returns True once settled, False on timeout.
+    """
+    try:
+        ser.reset_input_buffer()
+    except Exception:
+        pass
+    t_start = time.monotonic()
+    last_send = 0.0
+    good_streak = 0
+    while time.monotonic() - t_start < timeout_s:
+        now = time.monotonic()
+        if now - last_send >= 0.1:
+            ser.write(b"CMD,350,0,2,1,0\n")  # speed 0, brake 2 (full), mode 1, center
+            ser.flush()
+            last_send = now
+        raw = ser.readline()
+        if not raw:
+            continue
+        fields = parse_log_fields(raw.decode("ascii", errors="ignore").rstrip("\r\n"))
+        if not fields:
+            continue
+        angle = fields.get("actual_angle_tenths")
+        dbw = fields.get("dbw_angle_tenths")
+        speed = fields.get("sim_speed_cmPs")
+        if angle is None or dbw is None or speed is None:
+            continue
+        settled = abs(angle) <= 20 and speed <= 20 and abs(dbw - angle) <= 40
+        good_streak = good_streak + 1 if settled else 0
+        if verbose:
+            print(f"  [reset] angle={angle} dbw={dbw} speed={speed} "
+                  f"streak={good_streak}")
+        if good_streak >= 3:
+            return True
+    return False
+
+
 # -- Data --------------------------------------------------------------------
 
 @dataclass
@@ -194,6 +259,17 @@ def main() -> int:
     ser = serial.Serial(port, 115200, timeout=0.1)
     # Let the Due settle (Native USB CDC takes a moment to come up after open).
     time.sleep(0.5)
+
+    # Per-CSV baseline: give this independent test a clean, known starting
+    # state (wheel centered, stopped) before its clock starts. Runs once, only
+    # here — never mid-test.
+    print("Resetting to baseline (center + stop) before test...")
+    if baseline_reset(ser, verbose=verbose):
+        print("  Baseline reached: wheel centered, stopped, DBW tracking.")
+    else:
+        print("  WARNING: could not reach baseline in time \u2014 starting anyway. If the"
+              " DBW is powered via USB, make sure no monitor holds its port and it"
+              " isn't frozen.")
 
     t0 = time.monotonic()
     reader = LogReader(ser, t0, verbose=verbose)

@@ -1,0 +1,19 @@
+# Test: Steep-turn reversal (tight bands). Swing hard right to +200 tenths,
+#       then a full reversal to -200 tenths, checked with narrow +/-20 windows.
+# Physics: slew rate is ~20 tenths per 100ms loop (200 deg x10 / sec). Once at a
+#       non-railed target the wheel bang-bang oscillates ~+/-10 around it, so a
+#       +/-20 band reliably captures the settled value.
+#   - 0 -> +200 is 200 tenths => settled by ~t=1100.
+#   - +200 -> -200 is 400 tenths => settled by ~t=3200 (2100ms after command).
+# Format: time_ms, CANID, nbytes, speed_cmPs, brake, mode, angle_tenths
+#   brake: 0=off, 1=hold/12V, 2=on/24V   mode: 1=auto
+# Assertions use LOG fields: actual_angle_tenths, sim_speed_cmPs
+
+0,350,6,1500,0,1,200
+# Must be settled at the right lock (~+200) by t=1100, just as we reverse.
+# assert t=1100: 180 <= actual_angle_tenths <= 220
+1100,350,6,1500,0,1,-200
+# Full 400-tenth reversal must be settled at ~-200 by t=3200.
+# assert t=3200: -220 <= actual_angle_tenths <= -180
+# ...and it should still be cruising, not stopped.
+# assert t=3200: sim_speed_cmPs > 50

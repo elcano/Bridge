@@ -1,0 +1,16 @@
+# Test: Brake release does not latch. Accelerate, brake to a full stop, then command
+#       speed again and confirm the trike RELEASES the brake and moves. Guards against
+#       a brake that engages but never lets go.
+# Physics: brake overrides throttle to a stop; on brake=0 + speed>0 it must re-accelerate.
+# Format: time_ms, CANID, nbytes, speed_cmPs, brake, mode, angle_tenths
+#   brake: 0=off, 1=hold/12V, 2=on/24V   mode: 1=auto
+# Assertions use LOG fields: actual_angle_tenths, sim_speed_cmPs
+
+0,350,6,1500,0,1,0
+# assert t=1500: sim_speed_cmPs > 50
+2000,350,6,0,2,1,0
+# ^ brake ON (24V), speed 0 -> stop
+# assert t=3500: sim_speed_cmPs < 20
+4000,350,6,1500,0,1,0
+# ^ brake released, speed commanded again
+# assert t=6000: sim_speed_cmPs > 50

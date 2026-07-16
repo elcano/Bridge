@@ -1,0 +1,14 @@
+# Test: Negative / invalid speed command. Nav should never send negative speed,
+#       but a garbled frame or upstream bug could. Firmware treats any
+#       desired_speed <= 0 as a STOP (SpeedController::update -> Stop()), so an
+#       invalid negative speed must brake, NOT reverse or produce garbage.
+# Format: time_ms, CANID, nbytes, speed_cmPs, brake, mode, angle_tenths
+#   brake: 0=off, nonzero=ON (DBW treats any >0 as brake-on)   mode: 1=auto
+# Assertions use LOG fields: actual_angle_tenths, sim_speed_cmPs
+
+0,350,6,1500,0,1,0
+# Confirm it is actually driving first.
+# assert t=2000: sim_speed_cmPs > 50
+2000,350,6,-500,0,1,0
+# Invalid negative speed must be handled as a safe stop (not reverse/garbage).
+# assert t=4000: 0 <= sim_speed_cmPs < 20

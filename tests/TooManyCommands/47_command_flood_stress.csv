@@ -1,0 +1,22 @@
+# Test: Command-flood / high-rate stress. Fire commands ~5x faster than the ~100ms
+#       control loop (every 20ms) and confirm no buffer overflow, lag, or lockup --
+#       the trike must still reach and hold the commanded cruise + full-right turn.
+# Physics: 11 commands in 200ms; the DBW must absorb the burst and track the latest.
+# Format: time_ms, CANID, nbytes, speed_cmPs, brake, mode, angle_tenths
+#   brake: 0=off, 1=hold/12V, 2=on/24V   mode: 1=auto
+# Assertions use LOG fields: actual_angle_tenths, sim_speed_cmPs
+
+0,350,6,1500,0,1,250
+20,350,6,1500,0,1,250
+40,350,6,1500,0,1,250
+60,350,6,1500,0,1,250
+80,350,6,1500,0,1,250
+100,350,6,1500,0,1,250
+120,350,6,1500,0,1,250
+140,350,6,1500,0,1,250
+160,350,6,1500,0,1,250
+180,350,6,1500,0,1,250
+200,350,6,1500,0,1,200
+# ^ burst over -- system should have absorbed it cleanly
+# assert t=3000: 190 <= actual_angle_tenths <= 200
+# assert t=3000: sim_speed_cmPs > 50
