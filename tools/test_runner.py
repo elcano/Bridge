@@ -28,9 +28,10 @@ NavigateTestRunner/NavigateTestRunner.ino):
 Dependencies:
     pip install pyserial
 """
-
 from __future__ import annotations
-
+from datetime import datetime
+from pathlib import Path
+from test_visualizer import generate_report
 import re
 import sys
 import time
@@ -246,10 +247,19 @@ def evaluate(assertion: Assertion, log: list[tuple[int, dict[str, int]]]) -> tup
 # -- Main --------------------------------------------------------------------
 
 def main() -> int:
-    args = [a for a in sys.argv[1:] if not a.startswith("--")]
-    verbose = any(a in ("--verbose", "-v") for a in sys.argv[1:])
+    raw_args=sys.argv[1:]
+    verbose=any(arg in ("--verbose", "-v") for arg in raw_args)
+    report_enabled="--report" in raw_args
+    args=[
+        arg
+        for arg in raw_args
+        if arg not in ("--verbose", "-v", "--report")
+    ]
     if len(args) != 2:
-        sys.stderr.write(f"Usage: {sys.argv[0]} [--verbose] <test.csv> <serial_port>\n")
+        sys.stderr.write(
+            f"Usage: {sys.argv[0]} [--verbose] [--report] "
+            "<test.csv> <serial_port>\n"
+        )
         return 2
     csv_path, port = args[0], args[1]
 
@@ -314,9 +324,22 @@ def main() -> int:
         else:
             failed += 1
     print()
-    print(f"Summary: {passed} passed, {failed} failed, {len(reader.log)} LOG samples captured")
-    return 0 if failed == 0 else 1
-
-
+    print(
+        f"Summary: {passed} passed, {failed} failed, "
+        f"{len(reader.log)} LOG samples captured"
+    )
+    if report_enabled:
+        timestamp=datetime.now().strftime("%Y%m%d_%H%M%S")
+        test_name=Path(csv_path).stem
+        output_directory=Path("test_results")/f"{test_name}_{timestamp}"
+        generated_files=generate_report(reader.log, output_directory)
+        print()
+        if generated_files:
+            print(f"Generated report in {output_directory}:")
+            for path in generated_files:
+                print(f"  {path}")
+        else:
+            print("Report requested, but no usable telemetry was captured.")
+    return 0 if failed==0 else 1
 if __name__ == "__main__":
     sys.exit(main())
