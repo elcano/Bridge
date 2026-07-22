@@ -167,6 +167,7 @@ void printTestLog();
 // Shared physics engine (sin1000, cos1000, computeSpeed, updateAngle,
 // updatePosition, sendWheelPulse, sendAngleSensor). Included AFTER the globals
 // above because its inline bodies reference them by name.
+#define BRAKE_DECEL_mmPsPs   4000
 #include <simulator_physics.h>
 
 // ===========================================================================
