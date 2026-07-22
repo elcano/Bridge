@@ -189,6 +189,7 @@ bool sendSteerActualCAN();
 // X_mm, Y_mm, historyIndex, throttleHistory[], nextPulseTime_ms) by name.
 // SETUP: in Arduino IDE, set File -> Preferences -> Sketchbook location to
 // <repo>/Non_grapic_simulator so the IDE finds the library.
+#define BRAKE_DECEL_mmPsPs   4000
 #include <simulator_physics.h>
 
 // ===========================================================================

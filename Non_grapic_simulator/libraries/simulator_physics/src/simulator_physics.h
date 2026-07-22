@@ -32,6 +32,7 @@
  *     WHEEL_CIRCUM_MM, LOOP_TIME_MS
  *     L_STRAIGHT, L_MIN, L_MAX, R_STRAIGHT, R_MIN, R_MAX
  *     IRPT_WHEEL_PIN, L_SENSE_PIN, R_SENSE_PIN
+ *     BRAKE_DECEL_mmPsPs  (NEW - see brake model note below)
  *
  *   Globals declared in the .ino:
  *     int   throttleHistory[THROTTLE_HISTORY];
@@ -45,8 +46,16 @@
  * standalone=13600, closed-loop=2000), each gets the correct value
  * because macros resolve at each .ino's compilation, not here.
  *
- * Brake model in computeSpeed: half-decay per loop while braking
- * (introduced in PR #14 by Minhee; preserved here).
+ * Brake model in computeSpeed: UPDATED to a constant-deceleration (linear)
+ * model. The previous half-decay-per-loop model (PR #14 by Minhee) stopped
+ * the vehicle almost instantly (~0.4s regardless of speed), which Professor
+ * Folsom flagged as unrealistically fast. This version decelerates by a
+ * fixed BRAKE_DECEL_mmPsPs each loop instead, giving a straight-line speed
+ * ramp down to zero. Verified against SD-card CSV log: from 6735 mm/s the
+ * speed dropped by exactly 400 mm/s every 100ms loop (with
+ * BRAKE_DECEL_mmPsPs=4000, i.e. 4 m/s^2), reaching 0 in ~1.7s.
+ * BRAKE_DECEL_mmPsPs is a placeholder value; adjust once real trike braking
+ * data is available.
  */
 
 // ===========================================================================
@@ -79,11 +88,18 @@ static inline int cos1000(int angle_tenths) {
 
 // ===========================================================================
 // Compute Speed (integer arithmetic).
-// Brake model: decay speed by half each loop while braking to model
-// brake-deceleration ramp, instead of instantly zeroing.
+// Brake model: constant (linear) deceleration while braking, instead of
+// half-decay per loop. See file header note above for rationale/history.
+// Requires the including .ino to #define BRAKE_DECEL_mmPsPs before this
+// header is included (mm/s of speed lost per second while braking).
 // ===========================================================================
 static inline int computeSpeed(int throttle, bool brakeOn) {
-  if (brakeOn) { prevSpeed_mmPs = prevSpeed_mmPs * 5000 / 10000; return prevSpeed_mmPs; }
+  if (brakeOn) {
+    int decel = BRAKE_DECEL_mmPsPs * LOOP_TIME_MS / 1000;
+    prevSpeed_mmPs -= decel;
+    if (prevSpeed_mmPs < 0) prevSpeed_mmPs = 0;
+    return prevSpeed_mmPs;
+  }
   long sum = 0;
   for (int i = THROTTLE_DELAY_START; i <= THROTTLE_DELAY_END; i++) {
     int idx = (historyIndex - i + THROTTLE_HISTORY) % THROTTLE_HISTORY;
