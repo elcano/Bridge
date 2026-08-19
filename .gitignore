@@ -14,3 +14,6 @@ Non_grapic_simulator/**/SIM*.CSV
 __pycache__/
 *.py[cod]
 test_results/
+dbw_report/
+sample_logs/
+demo_report/
